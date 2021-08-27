@@ -1,0 +1,53 @@
+#Calculating pricing probability 
+p_prob <- function(r, d, u) {
+  return((r-d)/(u-d))
+}
+p_prob(r=1.05, d=0.9, u=1.1)
+#Creating pricing option tree
+tree_stock <- function(S, T, u, d) {
+  tree = matrix(NA, nrow=T, ncol=T)
+  for (i in 1:(T)) {
+    for (j in 1:i) {
+      tree[i,j] = S*u^(j-1)*d^(i-j)
+    }
+  }
+  return(tree)
+}
+tree=tree_stock(S=100, T=10, u=1.1,d=0.9)
+
+#Valueing options payoff function 
+value_binomial_option <- function(S, K, r, d, u, type, american, tree) {
+  p = p_prob(r, d, u)
+  option_tree = matrix(NA, nrow=nrow(tree), ncol=ncol(tree))
+  if(type == "call") {
+    option_tree[nrow(option_tree),] = pmax(tree[nrow(tree),]-K,0)
+  }
+  else {
+    option_tree[nrow(option_tree),] = pmax(K-tree[nrow(tree),],0)
+  }
+  if (american == TRUE) {
+    for (i in (nrow(tree)-1):1) {
+      for(j in 1:i) {
+        exercise.payoff <- if (type == "call") max(tree[i,j] - K, 0) else max(K - tree[i,j], 0)
+        hold.payoff <- (p*option_tree[i+1,j+1] + (1-p)*option_tree[i+1,j])/r
+        option_tree[i,j] <- max(exercise.payoff, hold.payoff)
+      }
+    }
+    return(option_tree)
+  }
+  else {
+    for (i in (nrow(tree)-1):1) {
+      for(j in 1:i) {
+        option_tree[i,j] = (p*option_tree[i+1,j+1] + (1-p)*option_tree[i+1,j])/r
+      }
+    }
+    return(option_tree)
+  }
+}
+#European put price option
+EP=value_binomial_option(S=100,K=100, r=1.05, d=0.9, u=1.1, type="put", american=FALSE, tree)
+View(EP)
+#American put price option 
+AP=value_binomial_option(S=100,K=100, r=1.05, d=0.9, u=1.1, type="put", american=TRUE, tree)
+View(AP)
+
